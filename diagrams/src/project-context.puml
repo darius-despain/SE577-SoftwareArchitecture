@@ -1,0 +1,22 @@
+@startuml "Home-Cook-Collective-Context"
+!include ../C4_Container.puml
+
+Person(cook, "Home Cook", "A user of the system who can create and manage recipes.")
+package "Container Runtime" <<boundary>> as c1 {
+    Container(bridge_mobile, "Home Cook Collective Mobile App", "Mobile Bridge", "Allows users to create and manage recipes on mobile devices")
+    Container(bridge_web, "Home Cook Collective Website", "Web Bridge", "Allows users to create and manage recipes on web browsers")
+    Container(web_server, "web_server", "React Native", "Shared code for mobile and web applications")
+    Container(db, "Database", "PostgreSQL", "Stores all data related to recipes, users, and ingredients")
+    Container(backend, "Backend API", "Kotlin Spring Boot", "Handles business logic and data access")
+}
+
+System_Ext(usda_api, "USDA API","Provides nutritional information for ingredients", "fdc.nal.usda.gov")
+
+Rel(cook, bridge_mobile, "Uses", "HTTPS")
+Rel(cook, bridge_web, "Uses", "HTTPS")
+Rel(bridge_mobile, web_server, "Uses", "HTTPS")
+Rel(bridge_web, web_server, "Uses", "HTTPS")
+Rel(web_server, backend, "Uses", "HTTPS")
+Rel(backend, db, "Uses", "JDBC")
+Rel(web_server, usda_api, "Fetches nutritional information for ingredients", "HTTPS")
+@enduml
