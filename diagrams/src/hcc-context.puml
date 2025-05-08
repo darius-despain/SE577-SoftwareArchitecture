@@ -10,6 +10,13 @@ Person(moderator, "Moderator", "A user dedicated to maintaining the quality and 
 
 Enterprise_Boundary(home_cook_collective, "Home Cook Collective") {
     System(hcc_app, "Home Cook Collective App", "A web and mobile application for discovering, creating, organizing recipes, accessing nutritional information, and fostering a cooking community.")
+    note right
+        Deployment targets a cloud platform
+        designed for scalability (e.g., auto-scaling groups, serverless functions)
+        and resiliency (e.g., multi-AZ deployments).
+        Security is enforced via managed cloud services
+        (e.g., WAF, security groups, IAM). Details in the Container Diagram
+    end note
 }
 
 ' External Systems
