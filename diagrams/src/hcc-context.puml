@@ -2,6 +2,7 @@
 !include ../C4_Container.puml
 title System Context diagram for Home Cook Collective
 
+' Personas
 Person(simple_seeker, "The Simple Seeker", "A home cook who wants to find and cook existing recipes with minimal effort.")
 Person(creative_cook, "The Creative Home Cook", "A home cook who enjoys modifying existing recipes to suit their tastes and needs.")
 Person(influencer, "The Influencer", "A home cook who mainly focuses on creating and sharing their own recipes with a community.")
@@ -11,6 +12,7 @@ Enterprise_Boundary(home_cook_collective, "Home Cook Collective") {
     System(hcc_app, "Home Cook Collective App", "A web and mobile application for discovering, creating, organizing recipes, accessing nutritional information, and fostering a cooking community.")
 }
 
+' External Systems
 System_Ext(usda_food_data, "USDA FoodData Central","Provides nutritional information for ingredients.")
 System_Ext(google_sso, "Google SSO", "Handles user authentication, allowing secure sign-in with Google accounts.")
 System_Ext(media_storage, "Cloud Media Storage", "Stores and retrieves user-uploaded media such as recipe images and videos.")
@@ -23,8 +25,8 @@ Rel(moderator, hcc_app, "Manages reported content; Spot-checks data; Ensures con
 
 ' System to External System Relationships
 Rel(hcc_app, google_sso, "Authenticates users", "OAuth 2.0 / OpenID Connect")
-Rel(hcc_app, media_storage, "Stores and retrieves user-uploaded media (images, videos)", "API Calls (e.g., S3 API, HTTPS)")
-Rel(hcc_app, usda_food_data, "Retrieves nutritional data for ingredients", "API Calls (HTTPS)")
+Rel(hcc_app, media_storage, "Stores and retrieves user-uploaded media (images, videos)", "HTTPS")
+Rel(hcc_app, usda_food_data, "Retrieves nutritional data for ingredients", "HTTPS")
 
 SHOW_LEGEND()
 @enduml
