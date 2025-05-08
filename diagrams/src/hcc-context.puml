@@ -1,41 +1,30 @@
 @startuml "Home-Cook-Collective-Context"
 !include ../C4_Container.puml
+title System Context diagram for Home Cook Collective
 
-Person(simple_seeker, "The Simple Seeker", "A home cook who wants to cook existing recipes")
-Person(creative_cook, "The Creative Home Cook", "A home cook who wants to modify existing recipes")
-Person(influencer, "The Influencer", "A home cook who wants to mainly share their recipes with others")
-Person(moderator, "Moderator", "A user dedicated to maintaining the quality and integrity of shared content")
+Person(simple_seeker, "The Simple Seeker", "A home cook who wants to find and cook existing recipes with minimal effort.")
+Person(creative_cook, "The Creative Home Cook", "A home cook who enjoys modifying existing recipes to suit their tastes and needs.")
+Person(influencer, "The Influencer", "A home cook who mainly focuses on creating and sharing their own recipes with a community.")
+Person(moderator, "Moderator", "A user dedicated to maintaining the quality and integrity of shared content.")
 
 Enterprise_Boundary(home_cook_collective, "Home Cook Collective") {
-    System(hcc_app, "Home Cook Collective App", "A web and mobile application for managing recipes and ingredients.")
+    System(hcc_app, "Home Cook Collective App", "A web and mobile application for discovering, creating, organizing recipes, accessing nutritional information, and fostering a cooking community.")
 }
 
-System_Ext(usda_nutrition_data, "USDA Food Data Central","Provides nutritional information for ingredients")
-System_Ext(google_sso, "Google SSO", "Allows users to sign in securely using their Google account")
-System_Ext(media_storage, "Media Storage", "Stores user-uploaded media such as images and videos")
+System_Ext(usda_food_data, "USDA FoodData Central","Provides nutritional information for ingredients.")
+System_Ext(google_sso, "Google SSO", "Handles user authentication, allowing secure sign-in with Google accounts.")
+System_Ext(media_storage, "Cloud Media Storage", "Stores and retrieves user-uploaded media such as recipe images and videos.")
 
-Rel(hcc_app, google_sso, "Authenticates user")
-Rel(hcc_app, media_storage, "Stores and retrieves user-uploaded media")
-Rel(hcc_app, usda_nutrition_data, "Gets nutritional information to back ingredients")
+' Persona to System Relationships
+Rel(simple_seeker, hcc_app, "Searches, views, and cooks recipes; Follows Influencers", "HTTPS")
+Rel(creative_cook, hcc_app, "Modifies recipes; Follows Influencers; Shares modifications; Cooks recipes", "HTTPS")
+Rel(influencer, hcc_app, "Creates & shares recipes; Manages follower interactions; Views recipe adaptation insights by followers", "HTTPS")
+Rel(moderator, hcc_app, "Manages reported content; Spot-checks data; Ensures content quality", "HTTPS")
 
-Rel(influencer, simple_seeker, "Follows for recipe updates")
-Rel(influencer, creative_cook, "Sees ingredient substitutions")
-Rel(creative_cook, influencer, "Follows for recipe inspiration")
+' System to External System Relationships
+Rel(hcc_app, google_sso, "Authenticates users", "OAuth 2.0 / OpenID Connect")
+Rel(hcc_app, media_storage, "Stores and retrieves user-uploaded media (images, videos)", "API Calls (e.g., S3 API, HTTPS)")
+Rel(hcc_app, usda_food_data, "Retrieves nutritional data for ingredients", "API Calls (HTTPS)")
 
-Rel(moderator, hcc_app, "Manages reported content and spot-checks data")
-Rel(simple_seeker, hcc_app, "Browses and cooks recipes")
-Rel(creative_cook, hcc_app, "Modifies existing recipes")
-Rel(influencer, hcc_app, "Creates recipes for followers")
-
-rectangle "Legend" {
-    skinparam rectangleBorderColor black
-    skinparam rectangleBackgroundColor #EEEEEE
-    note as legendNote
-        < $person > Person
-        < $system > System
-        < $system_ext > External System
-        <&arrow-right> Relationship
-    end note
-}
-
+SHOW_LEGEND()
 @enduml
