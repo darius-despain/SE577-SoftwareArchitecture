@@ -1,22 +1,49 @@
-@startuml "Home-Cook-Collective-Context"
+@startuml "Home-Cook-Collective-Container"
 !include ../C4_Container.puml
 
-Person(cook, "Home Cook", "A user of the system who can create and manage recipes.")
-package "Container Runtime" <<boundary>> as c1 {
-    Container(bridge_mobile, "Home Cook Collective Mobile App", "Mobile Bridge", "Allows users to create and manage recipes on mobile devices")
-    Container(bridge_web, "Home Cook Collective Website", "Web Bridge", "Allows users to create and manage recipes on web browsers")
-    Container(web_server, "web_server", "React Native", "Shared code for mobile and web applications")
-    Container(db, "Database", "PostgreSQL", "Stores all data related to recipes, users, and ingredients")
-    Container(backend, "Backend API", "Kotlin Spring Boot", "Handles business logic and data access")
+title Container diagram for Home Cook Collective App
+
+Person(user, "User", "Any of the user personas (The Simple Seeker, The Creative Home Cook, etc) who uses the app.")
+
+System_Ext(usda_api, "USDA API","Provides nutritional information for ingredients.", "fdc.nal.usda.gov")
+System_Ext(google_sso_ext, "Google SSO", "Handles user authentication via Google accounts.")
+System_Ext(media_storage_ext, "Cloud Media Storage", "Stores and retrieves user-uploaded media such as recipe images and videos.")
+
+System_Boundary(hcc_system, "Home Cook Collective") {
+    Container(mobile_app_client, "Mobile App", "React Native", "Runs on the user's mobile device, providing access to app features.")
+
+    Container_Boundary(hcc_k8s_cluster, "Cloud Hosted App (Kubernetes Cluster)") {
+
+        Container(external_lb, "External Load Balancer", "Cloud Provider LB", "Public internet entry point; distributes incoming HTTP(S) traffic to the Ingress Controller.")
+
+        Container(web_server, "Client Application Server", "React Native; TypeScript", "Serves client application logic/components and aggregates API calls to the main backend.")
+
+        Container(backend, "Backend API", "Kotlin Spring Boot", "Handles business logic, data access, and integrations with external services.")
+        ContainerDb(db, "Database", "PostgreSQL", "Stores all data related to recipes, users, and ingredients.")
+    }
+    note left of hcc_k8s_cluster
+        Cloud resources are deployed within a Kubernetes cluster.
+        Services like 'Client Application Server' and 'Backend API'
+        run as multiple replicas (Pods) fronted by Kubernetes Services
+        for load balancing and high availability.
+        The Database may also be a replicated StatefulSet.
+        Diagram shows logical container instances.
+    end note
 }
 
-System_Ext(usda_api, "USDA API","Provides nutritional information for ingredients", "fdc.nal.usda.gov")
+Rel(user, mobile_app_client, "Uses", "GUI")
+Rel(user, external_lb, "Accesses application services via", "HTTPS")
 
-Rel(cook, bridge_mobile, "Uses", "HTTPS")
-Rel(cook, bridge_web, "Uses", "HTTPS")
-Rel(bridge_mobile, web_server, "Uses", "HTTPS")
-Rel(bridge_web, web_server, "Uses", "HTTPS")
-Rel(web_server, backend, "Uses", "HTTPS")
-Rel(backend, db, "Uses", "JDBC")
-Rel(web_server, usda_api, "Fetches nutritional information for ingredients", "HTTPS")
+Rel(mobile_app_client, external_lb, "Makes API calls to", "HTTPS")
+Rel(external_lb, web_server, "Routes mobile app related traffic/requests to", "HTTPS")
+Rel(external_lb, backend, "Routes mobile app related traffic/requests to", "HTTPS")
+
+Rel(web_server, backend, "Makes API calls to", "HTTPS")
+
+Rel(backend, usda_api, "Fetches nutritional information for ingredients", "HTTPS")
+Rel(backend, db, "Reads/Writes data to/from", "JDBC")
+Rel(backend, google_sso_ext, "Delegates authentication using", "OAuth 2.0 / OpenID Connect")
+Rel(backend, media_storage_ext, "Stores and retrieves recipe media in/from", "HTTPS")
+
+SHOW_LEGEND()
 @enduml
