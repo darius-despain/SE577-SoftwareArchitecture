@@ -7,42 +7,61 @@ Person(user, "User", "Any of the user personas (The Simple Seeker, The Creative 
 
 System_Ext(usda_api, "USDA API","Provides nutritional information for ingredients.", "fdc.nal.usda.gov")
 System_Ext(google_sso_ext, "Google SSO", "Handles user authentication via Google accounts.")
+note right of google_sso_ext
+    Leverages Google's secure
+    authentication, simplifying user
+    login and offloading credential
+    management as per ADR 2.
+end note
 System_Ext(media_storage_ext, "Cloud Media Storage", "Stores and retrieves user-uploaded media such as recipe images and videos.")
 
 System_Boundary(hcc_system, "Home Cook Collective") {
     Container(mobile_app_client, "Mobile App", "React Native", "Runs on the user's mobile device, providing access to app features.")
+    Container(web_app_client, "Web App", "React", "Runs in the user's browser, providing access to app features.")
 
     Container_Boundary(hcc_k8s_cluster, "Cloud Hosted App (Kubernetes Cluster)") {
 
-        Container(external_lb, "External Load Balancer", "Cloud Provider LB", "Public internet entry point; distributes incoming HTTP(S) traffic to the Ingress Controller.")
+        Container(external_lb, "External Load Balancer", "Cloud Provider LB", "Public internet entry point; TLS termination; distributes incoming HTTPS traffic to the Client Application Server.")
 
-        Container(web_server, "Client Application Server", "React Native; TypeScript", "Serves client application logic/components and aggregates API calls to the main backend.")
+        Container(web_server, "Client Application Server", "React Native; TypeScript", "Serves client application logic/components and aggregates API calls to the API Gateway.")
 
-        Container(backend, "Backend API", "Kotlin Spring Boot", "Handles business logic, data access, and integrations with external services.")
-        ContainerDb(db, "Database", "PostgreSQL", "Stores all data related to recipes, users, and ingredients.")
+        Container(backend, "Backend", "Express.js", "Handles all backend logic and data processing. Each microservice is responsible for a specific domain of the application.")
+        note right of backend
+            See backend diagram for details on microservices.
+        end note
+
+        ContainerDb(db, "Database", "MySQL", "Stores all data related to recipes, users, and ingredients.")
+        note right of db
+            Managed MySQL service ensures
+            data integrity (ACID) and addresses Reliability Pillar.
+            **Resiliency & Recovery:** Configured with
+            automated daily backups and point-in-time
+            recovery (PITR). Target RPO: < 15 mins,
+            RTO: < 2 hours.
+        end note
     }
-    note left of hcc_k8s_cluster
-        Cloud resources are deployed within a Kubernetes cluster.
-        Services like 'Client Application Server' and 'Backend API'
-        run as multiple replicas (Pods) fronted by Kubernetes Services
-        for load balancing and high availability.
-        The Database may also be a replicated StatefulSet.
-        Diagram shows logical container instances.
+    note right of hcc_k8s_cluster
+        All backend services are containerized
+        and orchestrated by Kubernetes for
+        auto-scaling, self-healing, and
+        efficient resource management,
+        addressing scale and resiliency.
     end note
 }
 
 Rel(user, mobile_app_client, "Uses", "GUI")
-Rel(user, external_lb, "Accesses application services via", "HTTPS")
+Rel(user, web_app_client, "Uses", "GUI")
 
 Rel(mobile_app_client, external_lb, "Makes API calls to", "HTTPS")
+Rel(web_app_client, external_lb, "Makes API calls to", "HTTPS")
+
 Rel(external_lb, web_server, "Routes mobile app related traffic/requests to", "HTTPS")
-Rel(external_lb, backend, "Routes mobile app related traffic/requests to", "HTTPS")
 
 Rel(web_server, backend, "Makes API calls to", "HTTPS")
+Rel(web_server, google_sso_ext, "Delegates authentication using", "OAuth 2.0 / OpenID Connect")
 
 Rel(backend, usda_api, "Fetches nutritional information for ingredients", "HTTPS")
 Rel(backend, db, "Reads/Writes data to/from", "JDBC")
-Rel(backend, google_sso_ext, "Delegates authentication using", "OAuth 2.0 / OpenID Connect")
 Rel(backend, media_storage_ext, "Stores and retrieves recipe media in/from", "HTTPS")
 
 SHOW_LEGEND()

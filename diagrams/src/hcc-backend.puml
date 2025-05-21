@@ -1,0 +1,43 @@
+@startuml "Home-Cook-Collective-Container"
+!include ../C4_Component.puml
+
+title Backend Component diagram for Home Cook Collective App
+
+Container(frontend, "Frontend", "React Native; TypeScript", "Handles all client-side logic and UI components. Aggregates API calls to the API Gateway.")
+
+Container_Boundary(backend, "Backend Microservices") {
+    Component(api_gateway, "API Gateway", "Express.js", "Single entry point for all backend requests. Handles request routing, authentication (validating OAuth2 tokens - ADR 2), and rate limiting. Aggregates responses from microservices.")
+    Component(user_service, "User Service", "Express.js", "Manages user profiles, preferences, authentication-related data, and social features.")
+    Component(recipe_service, "Recipe Service", "Express.js ", "Manages recipe creation, discovery, modification, and organization.")
+    Component(ingredient_service, "Ingredient Service", "Express.js", "Manages ingredients, integrates with USDA API for nutritional data, and caches this data.")
+    Component(media_service, "Media Service", "Express.js", "Handles uploading, processing, and retrieval of media files (images/videos) for recipes.")
+}
+
+ContainerDb(db, "Database", "MySQL", "Stores all data related to recipes, users, and ingredients.")
+note right of db
+    Managed MySQL service ensures
+    data integrity (ACID).
+    **Resiliency & Recovery:** Configured with
+    automated daily backups and point-in-time
+    recovery (PITR). Target RPO: < 15 mins,
+    RTO: < 2 hours. Read replicas can be
+    added for read scalability and HA,
+    balancing cost with performance.
+end note
+
+' TODO: Add external systems and relationships
+
+Rel(frontend, api_gateway, "Makes API calls to", "HTTPS")
+
+Rel(api_gateway, user_service, "Routes requests to", "HTTPS")
+Rel(api_gateway, recipe_service, "Routes requests to", "HTTPS")
+Rel(api_gateway, ingredient_service, "Routes requests to", "HTTPS")
+Rel(api_gateway, media_service, "Routes requests to", "HTTPS")
+
+Rel(user_service, db, "Reads from and writes to", "JDBC")
+Rel(recipe_service, db, "Reads from and writes to", "JDBC")
+Rel(ingredient_service, db, "Reads from and writes to", "JDBC")
+Rel(media_service, db, "Reads from and writes to", "JDBC")
+
+SHOW_LEGEND()
+@enduml
