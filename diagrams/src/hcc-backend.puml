@@ -1,31 +1,66 @@
 @startuml "Home-Cook-Collective-Container"
 !include ../C4_Component.puml
 
-title Backend Component diagram for Home Cook Collective App
+title Backend Container diagram for Home Cook Collective App
 
-Container(frontend, "Frontend", "React Native; TypeScript", "Handles all client-side logic and UI components. Aggregates API calls to the API Gateway.")
+System(frontend, "Frontend", "React Native; TypeScript", "Handles all client-side logic and UI components. Aggregates API calls to the API Gateway.")
 
-Container_Boundary(backend, "Backend Microservices") {
-    Component(api_gateway, "API Gateway", "Express.js", "Single entry point for all backend requests. Handles request routing, authentication (validating OAuth2 tokens - ADR 2), and rate limiting. Aggregates responses from microservices.")
-    Component(user_service, "User Service", "Express.js", "Manages user profiles, preferences, authentication-related data, and social features.")
-    Component(recipe_service, "Recipe Service", "Express.js ", "Manages recipe creation, discovery, modification, and organization.")
-    Component(ingredient_service, "Ingredient Service", "Express.js", "Manages ingredients, integrates with USDA API for nutritional data, and caches this data.")
-    Component(media_service, "Media Service", "Express.js", "Handles uploading, processing, and retrieval of media files (images/videos) for recipes.")
+System_Boundary(backend, "Backend Microservices") {
+    Container(api_gateway, "API Gateway", "Express.js", "Single entry point for all backend requests. Handles request routing, authentication (validating OAuth2 tokens - ADR 2), and rate limiting. Aggregates responses from microservices.")
+
+    Container_Boundary(user_microservice, "User Microservice") {
+        Container(user_service, "User Service", "Express.js", "Manages user profiles, preferences, authentication-related data, and social features.")
+        ContainerDb(user_db, "User Database", "MySQL", "Stores all data related to users from the User Microservice.")
+        note right of user_db
+            Each DB is a Managed MySQL
+            service. **Resiliency & Recovery:**
+            Configured with automated daily
+            backups and point-in-time
+            recovery (PITR). Target RPO: < 15
+            mins, RTO: < 2 hours. Read
+            replicas can be added for read
+            scalability and HA, balancing cost
+            with performance. Separate databases are used for each
+            microservice to ensure maximum
+            **Reliability** by allowing each
+            service to be scaled and if needed,
+            recovered independently.
+        end note
+    }
+    Container_Boundary(recipe_microservice, "Recipe Microservice") {
+        Container(recipe_service, "Recipe Service", "Express.js ", "Manages recipe creation, discovery, modification, and organization.")
+        ContainerDb(recipe_db, "Recipe Database", "MySQL", "Stores all data related to recipes from the Recipe Microservice.")
+    }
+    Container_Boundary(ingredient_microservice, "Ingredient Microservice") {
+        Container(ingredient_service, "Ingredient Service", "Express.js", "Manages ingredients, integrates with USDA API for nutritional data, and caches this data.")
+        ContainerDb(ingredient_db, "Ingredient Database", "MySQL", "Stores all data related to ingredients cached from USDA API via Ingredient Microservice.")
+        note right of ingredient_db
+            To ensure the best **Performance**
+            **Efficiency**, ingredients are
+            cached up to 30 days. Cached
+            data will be more quickly retrieved
+            than from the USDA API.
+        end note
+    }
+    Container_Boundary(media_microservice, "Media Microservice") {
+        Container(media_service, "Media Service", "Express.js", "Handles media uploads and retrievals.")
+        ContainerDb(media_db, "Media Database", "MySQL", "Stores all metadata related to media from the Media Microservice. Media will then be stored in the external Cloud Media Storage.")
+    }
 }
-
-ContainerDb(db, "Database", "MySQL", "Stores all data related to recipes, users, and ingredients.")
-note right of db
-    Managed MySQL service ensures
-    data integrity (ACID).
-    **Resiliency & Recovery:** Configured with
-    automated daily backups and point-in-time
-    recovery (PITR). Target RPO: < 15 mins,
-    RTO: < 2 hours. Read replicas can be
-    added for read scalability and HA,
-    balancing cost with performance.
+note right of backend
+    To ensure **Cost Optimization** and
+    **Reliability**, the backend services
+    are split into separately
+    deployable microservices so that
+    each service can be independently
+    scaled to use the minimum
+    resources and isolate any faults
+    to the responsible microservice.
+    Ref: **ADR 5**
 end note
 
-' TODO: Add external systems and relationships
+System_Ext(usda_api, "USDA API","Provides nutritional information for ingredients.", "fdc.nal.usda.gov")
+System_Ext(media_storage_ext, "Cloud Media Storage", "Stores and retrieves user-uploaded media such as recipe images and videos.")
 
 Rel(frontend, api_gateway, "Makes API calls to", "HTTPS")
 
@@ -34,10 +69,13 @@ Rel(api_gateway, recipe_service, "Routes requests to", "HTTPS")
 Rel(api_gateway, ingredient_service, "Routes requests to", "HTTPS")
 Rel(api_gateway, media_service, "Routes requests to", "HTTPS")
 
-Rel(user_service, db, "Reads from and writes to", "JDBC")
-Rel(recipe_service, db, "Reads from and writes to", "JDBC")
-Rel(ingredient_service, db, "Reads from and writes to", "JDBC")
-Rel(media_service, db, "Reads from and writes to", "JDBC")
+Rel(ingredient_service, usda_api, "Makes API calls to", "HTTPS")
+Rel(media_service, media_storage_ext, "Uploads and retrieves media from", "HTTPS")
+
+Rel(user_service, user_db, "Reads from and writes to", "JDBC")
+Rel(recipe_service, recipe_db, "Reads from and writes to", "JDBC")
+Rel(ingredient_service, ingredient_db, "Reads from and writes to", "JDBC")
+Rel(media_service, media_db, "Reads from and writes to", "JDBC")
 
 SHOW_LEGEND()
 @enduml

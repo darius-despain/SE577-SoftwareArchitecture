@@ -10,8 +10,10 @@ System_Ext(google_sso_ext, "Google SSO", "Handles user authentication via Google
 note right of google_sso_ext
     Leverages Google's secure
     authentication, simplifying user
-    login and offloading credential
-    management as per ADR 2.
+    login, offloading credential
+    management as per ADR 2,
+    and increasing the **Security**
+    pillar of this system.
 end note
 System_Ext(media_storage_ext, "Cloud Media Storage", "Stores and retrieves user-uploaded media such as recipe images and videos.")
 
@@ -19,33 +21,36 @@ System_Boundary(hcc_system, "Home Cook Collective") {
     Container(mobile_app_client, "Mobile App", "React Native", "Runs on the user's mobile device, providing access to app features.")
     Container(web_app_client, "Web App", "React", "Runs in the user's browser, providing access to app features.")
 
-    Container_Boundary(hcc_k8s_cluster, "Cloud Hosted App (Kubernetes Cluster)") {
+    System_Boundary(hcc_k8s_cluster, "Cloud Hosted App (Kubernetes Cluster)") {
 
         Container(external_lb, "External Load Balancer", "Cloud Provider LB", "Public internet entry point; TLS termination; distributes incoming HTTPS traffic to the Client Application Server.")
+        note right of external_lb
+            **Security** is ensured by
+            controlling all incoming traffic,
+            ensuring all requests are following
+            expected protocols deliberately
+            exposed for functionality of the
+            application. **Reliability** is ensured by distributing traffic as the application horizontally scales with more replicas of the Client Application Server.
+        end note
 
         Container(web_server, "Client Application Server", "React Native; TypeScript", "Serves client application logic/components and aggregates API calls to the API Gateway.")
 
-        Container(backend, "Backend", "Express.js", "Handles all backend logic and data processing. Each microservice is responsible for a specific domain of the application.")
+        System(backend, "Backend", "Handles all backend logic and data processing. Each microservice is responsible for a specific domain of the application.")
         note right of backend
-            See backend diagram for details on microservices.
-        end note
-
-        ContainerDb(db, "Database", "MySQL", "Stores all data related to recipes, users, and ingredients.")
-        note right of db
-            Managed MySQL service ensures
-            data integrity (ACID) and addresses Reliability Pillar.
-            **Resiliency & Recovery:** Configured with
-            automated daily backups and point-in-time
-            recovery (PITR). Target RPO: < 15 mins,
-            RTO: < 2 hours.
+            See backend diagram for details on microservices (also includes separate databases for each microservice).
         end note
     }
     note right of hcc_k8s_cluster
-        All backend services are containerized
-        and orchestrated by Kubernetes for
-        auto-scaling, self-healing, and
-        efficient resource management,
-        addressing scale and resiliency.
+        All backend services are
+        containerized and orchestrated by
+        Kubernetes for auto-scaling,
+        self-healing, and efficient resource
+        management, addressing
+        **Reliability** through scale
+        and resiliency then **Cost**
+        **Optimization** by only scaling the
+        parts of the system that require
+        more throughput.
     end note
 }
 
@@ -61,7 +66,6 @@ Rel(web_server, backend, "Makes API calls to", "HTTPS")
 Rel(web_server, google_sso_ext, "Delegates authentication using", "OAuth 2.0 / OpenID Connect")
 
 Rel(backend, usda_api, "Fetches nutritional information for ingredients", "HTTPS")
-Rel(backend, db, "Reads/Writes data to/from", "JDBC")
 Rel(backend, media_storage_ext, "Stores and retrieves recipe media in/from", "HTTPS")
 
 SHOW_LEGEND()
