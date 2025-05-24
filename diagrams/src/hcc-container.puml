@@ -19,7 +19,16 @@ System_Ext(media_storage_ext, "Cloud Media Storage", "Stores and retrieves user-
 
 System_Boundary(hcc_system, "Home Cook Collective") {
     Container(mobile_app_client, "Mobile App", "React Native", "Runs on the user's mobile device, providing access to app features.")
-    Container(web_app_client, "Web App", "React", "Runs in the user's browser, providing access to app features.")
+    Container(web_app_client, "Web App", "React Native", "Runs in the user's browser, providing access to app features.")
+    note right
+        React Native chosen for the
+        frontend to facilitate better
+        **Operational Excellence** by
+        allowing the User Interface to be in
+        a single codebase that works on
+        both mobile and web applications.
+        Ref **ADR 1**.
+    end note
 
     System_Boundary(hcc_k8s_cluster, "Cloud Hosted App (Kubernetes Cluster)") {
 
@@ -30,14 +39,21 @@ System_Boundary(hcc_system, "Home Cook Collective") {
             ensuring all requests are following
             expected protocols deliberately
             exposed for functionality of the
-            application. **Reliability** is ensured by distributing traffic as the application horizontally scales with more replicas of the Client Application Server.
+            application. **Reliability** is ensured
+            by distributing traffic as the
+            application horizontally scales
+            with more replicas of the Client
+            Application Server.
         end note
 
-        Container(web_server, "Client Application Server", "React Native; TypeScript", "Serves client application logic/components and aggregates API calls to the API Gateway.")
+        Container(web_server, "Client Application Server", "Next.js; TypeScript", "Serves web/mobile application logic/components and aggregates API calls to the Backend.")
 
         System(backend, "Backend", "Handles all backend logic and data processing. Each microservice is responsible for a specific domain of the application.")
         note right of backend
-            See backend diagram for details on microservices (also includes separate databases for each microservice).
+            See backend diagram for details
+            on microservices (also includes
+            separate databases for each
+            microservice). Ref. **ADR 5**.
         end note
     }
     note right of hcc_k8s_cluster
@@ -46,27 +62,30 @@ System_Boundary(hcc_system, "Home Cook Collective") {
         Kubernetes for auto-scaling,
         self-healing, and efficient resource
         management, addressing
-        **Reliability** through scale
-        and resiliency then **Cost**
-        **Optimization** by only scaling the
-        parts of the system that require
-        more throughput.
+        **Reliability** through scale and
+        resiliency then **Cost** **Optimization**
+        by only scaling the parts of the
+        system that require it.
+        Ref. **ADR 4**.
     end note
 }
 
 Rel(user, mobile_app_client, "Uses", "GUI")
 Rel(user, web_app_client, "Uses", "GUI")
 
-Rel(mobile_app_client, external_lb, "Makes API calls to", "HTTPS")
-Rel(web_app_client, external_lb, "Makes API calls to", "HTTPS")
+Rel(mobile_app_client, external_lb, "Fetches data and server-rendered components", "HTTPS")
+Rel(web_app_client, external_lb, "Fetches data and server-rendered components", "HTTPS")
 
-Rel(external_lb, web_server, "Routes mobile app related traffic/requests to", "HTTPS")
+Rel(external_lb, web_server, "Routes all User Interface traffic/requests to", "HTTPS")
 
 Rel(web_server, backend, "Makes API calls to", "HTTPS")
-Rel(web_server, google_sso_ext, "Delegates authentication using", "OAuth 2.0 / OpenID Connect")
 
 Rel(backend, usda_api, "Fetches nutritional information for ingredients", "HTTPS")
 Rel(backend, media_storage_ext, "Stores and retrieves recipe media in/from", "HTTPS")
+
+Rel(mobile_app_client, google_sso_ext, "Authenticates users then provides token", "OAuth 2.0 / OpenID Connect")
+Rel(web_app_client, google_sso_ext, "Authenticates users then provides token", "OAuth 2.0 / OpenID Connect")
+Rel(backend, google_sso_ext, "Validates user's token", "OAuth 2.0 / OpenID Connect")
 
 SHOW_LEGEND()
 @enduml

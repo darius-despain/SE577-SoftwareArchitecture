@@ -1,5 +1,5 @@
 @startuml "Home-Cook-Collective-Context"
-!include ../C4_Container.puml
+!include ../C4_Context.puml
 title System Context diagram for Home Cook Collective
 
 ' Personas
@@ -12,7 +12,8 @@ Enterprise_Boundary(home_cook_collective, "Home Cook Collective") {
     System(hcc_app, "Home Cook Collective App", "The complete user-facing system, including web and mobile applications, for discovering, creating, organizing recipes, accessing nutritional information, and fostering a cooking community.")
     note right
         Architected as a set of cloud-native services
-        (detailed in Container Diagram) deployed for
+        (detailed in Container Diagram)
+        orchestrated by Kubernetes (**ADR 4**) for
         scalability, resiliency, and security
         using modern practices.
     end note
