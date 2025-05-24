@@ -3,7 +3,7 @@
 
 title Backend Container diagram for Home Cook Collective App
 
-System_Ext(frontend, "Frontend", "React Native; TypeScript", "Handles all client-side logic and UI components. Aggregates API calls to the API Gateway.")
+System_Ext(frontend, "Frontend", "Handles all client-side logic and UI components. Aggregates API calls to the API Gateway.")
 System_Ext(google_sso_ext, "Google SSO", "Handles user authentication via Google accounts.")
 
 System_Boundary(backend, "Backend Microservices") {
